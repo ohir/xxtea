@@ -19,7 +19,7 @@ const (
 	datME16 = "1023546798ABDCEF"
 	datMX16 = "0132457689BACDFE"
 
-	msgMin = `AbCdEFgH`
+	msgMin = `AbCdEFgHiJkL`
 	msgMax = `gygedyrtestycsedfdsfsdfdfsfslkdfsdflkjdfjljsdffsdfsdfsdfsjljdfl
 gygedyrtestycsedfdsfsdfdfsfslkdfsdflkjdfjljsdffsdfsdfsdfsjljdfl
 gygedyrtestycsedfdsfsdfdfsfslkdfsdflkjdfjljsdffsdfsdfsdfsjljdfl
@@ -41,6 +41,27 @@ func someBytesEqual(r []byte, s string) bool {
 		}
 	}
 	return false
+}
+
+func Test_Regression(t *testing.T) {
+	kst := "SomeKeyBytesHere"
+	kby := AsLEBE(AsBELE(AsLELE([]byte(kst))))
+	if kst != string(kby) {
+		t.Error("Byte juggling regressed")
+	}
+	msg := "Some message to encrypt here"
+	exp := []byte{0x22, 0x5c, 0xe2, 0x1c, 0x75, 0x3c, 0x6c, 0xec, 0xea, 0xae, 0x78, 0x59, 0xda, 0xe5, 0xbd, 0xa3, 0x2c, 0xe6, 0xf1, 0xe5, 0xc2, 0xdd, 0xb0, 0x98, 0xa3, 0x41, 0x9b, 0xf5}
+
+	key := NewKey(kby)
+	encMsg := make([]byte, len(msg))
+	key.Encrypt([]byte(msg), encMsg) // fmt.Printf("exp := %#v\n", encMsg)
+	if slices.Compare(exp, encMsg) != 0 {
+		t.Error("Encryption regressed")
+	}
+	key.Decrypt(encMsg, encMsg)
+	if string(encMsg) != msg {
+		t.Error("Decryption regressed")
+	}
 }
 
 func Test_BitFlip(t *testing.T) {
