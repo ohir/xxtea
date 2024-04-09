@@ -1,29 +1,37 @@
-# xxtea
+## xxtea
 Self-contained XXTEA block cipher implementation in Go. 100% tests coverage.  With benchmarks.
 
 XXTEA may protect communication with tiny IoT devices.
 
+### API
 
-### This package intentionally does not conform to the crypto/cipher API!
+```go
+    import "github.com/ohir/xxtea"
+    // ...
+	key := xxtea.NewKey([]byte("16secretKeyBytes"))
+	msg := []byte("Some message to encrypt here")
+	key.Encrypt(msg, msg) // encrypt in place
+	key.Decrypt(msg, msg) // decrypt in place
+```
 
-XXTEA cipher should **NEVER** be used as the `cipher.Block` primitive nor the message size should ever exceed 208B or be less than 12B (limits enforced by this package).  See cryptanalysis papers for XXTEA, XTEA, and TEA.  Start with [XXTEA cryptanalysis](https://eprint.iacr.org/2010/254) paper by _Elias Yarrkov_.
-
-
-## API
- `import "github.com/ohir/xxtea"`
+`go get -u github.com/ohir/xxtea`
 
  - `func NewKey(key []byte) TeaKey    // expects big-endian (0123456789ABCDEF) bytes`
  - `func (k TeaKey) Encrypt(in, out []byte) []byte // in plaintext to out ciphertext`
  - `func (k TeaKey) Decrypt(in, out []byte) []byte // in ciphertext to out plaintext`
 
-Key must be obtained from exactly 16B long byte slice containing a non-zero 128 bits number serialized to big-endian bytes.  See "Interop functions" for possible conversions from other byte layouts.
+The key value must be provided as a byte slice of exactly 16 bytes containing a non-zero 128-bit number serialised to big-endian bytes.  See "Interop functions" for possible conversions from other byte layouts.
 
-Decrypt and Encrypt methods on a TeaKey do xxtea block rounds over `in` bytes writing result to the `out` bytes.  Both `in` and `out` can be given the same slice for the in-place operation.  The `out` slice is the one returned.  Both `in` and `out` lengths must be equal, in range of 12 to 208, and must be a multiple of four.
+Both Decrypt and Encrypt methods on a TeaKey do xxtea block rounds over `in` bytes writing result to the `out` bytes.  Both `in` and `out` arguments can be given the same slice for the in-place operation.  The `out` slice is the one returned.  Both `in` and `out` slice's lengths must be equal, in range of 12 to 208, and must be a multiple of four.
 
-XXTEA originally operates on uint32 values so all functions and methods here expect key and data lengths being an integral multiply of 4.  Possible padding and key extending schemas depends on intended cipher usage or are imposed externally.  None to be imposed by the crypto primitive library.
+XXTEA originally operates on uint32 values so all functions and methods here expect key and data lengths being an integral multiply of 4.  Possible padding and key extending schemes depend on the intended use, so they should not be imposed here.
+
+> This package intentionally does not conform to the crypto/cipher API!
+
+XXTEA cipher should **NEVER** be used as the `cipher.Block` primitive nor the message size should ever exceed 208B or be less than 12B (limits enforced by this package).  See cryptanalysis papers for XXTEA, XTEA, and TEA.  Start with [XXTEA cryptanalysis](https://eprint.iacr.org/2010/254) paper by _Elias Yarrkov_.
 
 
-## INTEROP FUNCTIONS
+### INTEROP FUNCTIONS
 
 Many IoT softwares serialise data as cheaply as possible what usually means "by dumping the raw memory".  Exchanging keys (and data) with such an implementation needs some chunk and/or bytes juggling to get at the cannonical big-endian form of a serialized xxtea key.
 
@@ -43,12 +51,12 @@ The old "mid-endian" helpers are now commented-out in the source:
  - `func AsMX16(d []byte) []byte // 0132457689BACDFE <=> 0123456789ABCDEF`. AsMX16 reverses byte order in each _odd_ 2B chunk. It returns `d` modified in-place.
 
 
-## ERRORS
+### ERRORS
 
-No recoverable error conditions may occur, only misuses.  This package functions _panics_ on any possible misuse, ie. wrong argument sizes or key being all zeros.
+No recoverable error conditions may occur, only misuses.  This package functions _panics_ on such a misuse, ie. wrong argument size or key being all zeros (a zero key most likely means that it has not been set).
 
 
-## INTENDED USAGE
+### INTENDED USAGE
 
 For securing communication with tiny IoT devices using short _indepedent_ messages.
 
@@ -66,7 +74,7 @@ crypto/ChaCha_208    662.9 ns/op   313.77 MB/s   176 B/op   1 allocs/op
 _Note that ChaCha is a stream cipher - it MUST be used with an authenticator like Poly1305, or a HMAC.  It also uses 32B key and needs 96bit nonce._
 
 
-## USAGE EXAMPLE
+### USAGE EXAMPLE
 
 ```go
 package main
