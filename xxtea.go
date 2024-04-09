@@ -62,8 +62,8 @@ func NewKey(key []byte) (k TeaKey) {
 	}
 	var c uint32
 	for n := 0; n < 16; n += 4 {
-		k[n>>2] = uint32(key[n])<<24 | uint32(key[n+1])<<16 | // from bytes
-			uint32(key[n+2])<<8 | uint32(key[n+3])
+		k[n>>2] = uint32(key[n+3]) | uint32(key[n+2])<<8 | // from bytes
+			uint32(key[n+1])<<16 | uint32(key[n])<<24
 		c |= k[n>>2]
 	}
 	if c == 0 {
@@ -82,8 +82,8 @@ func AsBELE(d []byte) []byte {
 	var i, l int
 	l = chk4len(len(d))
 	for i < l {
-		d[i+0], d[i+1], d[i+2], d[i+3], d[l-3],
-			d[l-2], d[l-1], d[l] = d[l-3], d[l-2], d[l-1], d[l],
+		d[i+3], d[i+2], d[i+1], d[i],
+			d[l-3], d[l-2], d[l-1], d[l] = d[l], d[l-1], d[l-2], d[l-3],
 			d[i+0], d[i+1], d[i+2], d[i+3]
 		l -= 4
 		i += 4
@@ -183,7 +183,7 @@ func chk4len(l int) int {
 // TeaKey.Encrypt does xxtea block rounds over 'in' bytes writing result to the
 // 'out' bytes.  It returns the same 'out' slice it has got.
 //
-// Slices must be the same length in 8..208 range, in multiples of four.
+// Slices must be the same length in 12..208 range, in multiples of four.
 // Both arguments can be the same slice.
 func (k TeaKey) Encrypt(in, out []byte) []byte {
 	var n, y, z, p, sum, rounds uint32
@@ -193,8 +193,8 @@ func (k TeaKey) Encrypt(in, out []byte) []byte {
 		panic(em)
 	}
 	for n = 0; n < z; n += 4 {
-		v[n>>2] = uint32(in[n])<<24 | uint32(in[n+1])<<16 | // from bytes
-			uint32(in[n+2])<<8 | uint32(in[n+3])
+		v[n>>2] = uint32(in[n+3]) | uint32(in[n+2])<<8 | // from bytes
+			uint32(in[n+1])<<16 | uint32(in[n])<<24
 	}
 	n = z >> 2        // n uint32s
 	rounds = 6 + 52/n // rounds = 6 + 52/n;
@@ -230,7 +230,7 @@ func (k TeaKey) Encrypt(in, out []byte) []byte {
 	}
 	for n = 0; n < uint32(len(out)); n += 4 {
 		k := v[n>>2] // to bytes
-		out[n], out[n+1], out[n+2], out[n+3] = byte(k>>24), byte(k>>16), byte(k>>8), byte(k)
+		out[n+3], out[n+2], out[n+1], out[n] = byte(k), byte(k>>8), byte(k>>16), byte(k>>24)
 	}
 	return out
 }
@@ -238,7 +238,7 @@ func (k TeaKey) Encrypt(in, out []byte) []byte {
 // TeaKey.Decrypt does xxtea block rounds over 'in' bytes writing result to the
 // 'out' bytes.  It returns the same 'out' slice it has got.
 //
-// Slices must be the same length in 8..208 range, in multiples of four.
+// Slices must be the same length in 12..208 range, in multiples of four.
 // Both arguments can be the same slice.
 func (k TeaKey) Decrypt(in, out []byte) []byte {
 	var n, y, z, p, rounds uint32
@@ -248,8 +248,8 @@ func (k TeaKey) Decrypt(in, out []byte) []byte {
 		panic(em)
 	}
 	for n = 0; n < y; n += 4 {
-		v[n>>2] = uint32(in[n])<<24 | uint32(in[n+1])<<16 | // from bytes
-			uint32(in[n+2])<<8 | uint32(in[n+3])
+		v[n>>2] = uint32(in[n+3]) | uint32(in[n+2])<<8 | // from bytes
+			uint32(in[n+1])<<16 | uint32(in[n])<<24
 	}
 	n = y >> 2        // n ints
 	rounds = 6 + 52/n // rounds = 6 + 52/n;
@@ -286,7 +286,7 @@ func (k TeaKey) Decrypt(in, out []byte) []byte {
 	}
 	for n = 0; n < uint32(len(out)); n += 4 {
 		k := v[n>>2] // to bytes
-		out[n], out[n+1], out[n+2], out[n+3] = byte(k>>24), byte(k>>16), byte(k>>8), byte(k)
+		out[n+3], out[n+2], out[n+1], out[n] = byte(k), byte(k>>8), byte(k>>16), byte(k>>24)
 	}
 	return out
 }
